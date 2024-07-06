@@ -1,1 +1,97 @@
-A
+### Pre-requisites:
+1. **Service Account Key**: You need to download the service account JSON key file from the Google Cloud Console.
+2. **Google API PHP Client**: Install the Google API PHP Client library to handle the authentication.
+
+### Step 1: Install Google API PHP Client
+You can install the Google API PHP Client using Composer. If you don't have Composer installed, you can download it from [getcomposer.org](https://getcomposer.org/).
+
+```bash
+composer require google/apiclient
+```
+
+### Step 2: PHP Script
+Here's the complete PHP script:
+
+```php
+<?php
+require 'vendor/autoload.php';
+
+use Google\Client;
+
+// Path to your service account key file
+$serviceAccountFile = 'path/to/your/service-account-file.json';
+
+// FCM endpoint URL
+$fcmUrl = 'https://fcm.googleapis.com/v1/projects/YOUR_PROJECT_ID/messages:send';
+
+// The device token you want to send the notification to
+$deviceToken = 'DEVICE_TOKEN_HERE';
+
+// Notification data
+$notification = [
+    'title' => 'Your Notification Title',
+    'body'  => 'Your Notification Body',
+    'icon'  => 'your_icon_url' // Optional
+];
+
+// Create a Google Client
+$client = new Client();
+$client->setAuthConfig($serviceAccountFile);
+$client->addScope('https://www.googleapis.com/auth/firebase.messaging');
+
+// Get the OAuth 2.0 token
+$token = $client->fetchAccessTokenWithAssertion()['access_token'];
+
+// Message payload
+$message = [
+    'message' => [
+        'token' => $deviceToken,
+        'notification' => $notification
+    ]
+];
+
+// Convert message to JSON
+$jsonMessage = json_encode($message);
+
+// Set up headers
+$headers = [
+    'Authorization: Bearer ' . $token,
+    'Content-Type: application/json'
+];
+
+// Initialize curl
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $fcmUrl);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonMessage);
+
+// Execute curl
+$result = curl_exec($ch);
+
+// Check for errors
+if ($result === FALSE) {
+    die('FCM Send Error: ' . curl_error($ch));
+}
+
+// Close curl
+curl_close($ch);
+
+// Print result
+echo $result;
+?>
+```
+
+### Instructions:
+1. **Replace placeholders:**
+   - `path/to/your/service-account-file.json`: Path to your service account JSON key file.
+   - `YOUR_PROJECT_ID`: Your actual Firebase project ID.
+   - `DEVICE_TOKEN_HERE`: The target device's token.
+   - Customize the `notification` array with your notification title, body, and icon.
+
+2. **Run the script**:
+   - Make sure the service account JSON key file is accessible.
+   - Execute the PHP script from the command line or a web server.
+
+This script uses the Google API PHP Client library to generate the OAuth 2.0 access token, then sends a notification to a specified device via Firebase Cloud Messaging.
